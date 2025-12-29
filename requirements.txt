@@ -4,3 +4,4 @@ python-dotenv==1.2.1
 pydantic[email]==2.12.4
 uvicorn[standard]==0.38.0
 pandas==2.3.3
+numpy==2.3.5
