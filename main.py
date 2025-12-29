@@ -34,7 +34,7 @@ def get_word_detail(word_id):
     try:
         resp = database.from_("words_all_with_translate").select("*").eq("word_id_from", word_id).execute()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=e) from e
+        raise HTTPException(status_code=500, detail="Error in comunation with database") from e
     if len(resp.data) == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -59,7 +59,6 @@ def get_word_detail(word_id):
             }
         ]
 
-
 @app.get("/health", tags=["Health"])
 async def health_check():
     """
@@ -79,7 +78,10 @@ async def get_all_words(language_from, language_to):
     querry = querry.order("word_id_from")
     querry = querry.order("word_translate_id")
     querry = querry.order("word_id_to")
-    word_content_data = querry.execute()
+    try:
+        word_content_data = querry.execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error in comunation with database") from e
     tran = {}
     for word in word_content_data.data:
         if word["word_id_from"] not in tran:
@@ -186,8 +188,11 @@ async def get_random_word(id_seed: int):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Seed ID must be higher then 0")
     resp = database.from_("words_all_with_translate").select("*").eq("word_language_from", "EN").order("random_id", desc=True).execute()
-    random.seed(id_seed)
-    random.seed()
-    index = random.randint(0,len(resp.data)-1)
-    return {"status": "ok", "data": resp.data[index]}
-
+    if len(resp.data) > 0:
+        random.seed(id_seed)
+        random.seed()
+        index = random.randint(0,len(resp.data)-1)
+        data = resp.data[index]
+    else:
+        data = []
+    return {"status": "ok", "data": data}
