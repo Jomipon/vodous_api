@@ -1,0 +1,6 @@
+fastapi==0.121.2
+supabase==2.24.0
+python-dotenv==1.2.1
+pydantic[email]==2.12.4
+uvicorn[standard]==0.38.0
+pandas==2.3.3

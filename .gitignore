@@ -1,0 +1,6 @@
+# Enviroments
+.env
+/venv_vodous_api
+__pycache__/
+app.log
+
