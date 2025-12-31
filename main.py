@@ -1,15 +1,17 @@
 """
 Main program for start api
 """
+import random
+import uuid
 import os
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-#from supabase_client import supabase
-#from Model.word import EnvelopeWordContentOut, WordContentIn
+from supabase_client import supabase
+from Model.word import EnvelopeWordContentOut, WordContentIn
 
 app = FastAPI(title="Vodouš API", version="0.1.0")
-#database = supabase
+database = supabase
 
 load_dotenv()
 
