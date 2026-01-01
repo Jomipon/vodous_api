@@ -1,11 +1,11 @@
-# Vosouš API (FastAPI)
-API pro webovou aplikaci na učení slovíček cizího jazyka ve formě kvízu.
+# Vodouš API (FastAPI)
+API pro webovou aplikaci na učení slovíček cizího jazyka ve formě kvízů.
 
 ## Funkce
 - Seznam slovíček s překladem
 - Náhodné slovíčko s překladem
 - Detail jednoho slovíčka
-- Založení nového slovíčka s překladem
+- Založení nového slovíčka
 
 ## Technologie
 - Python 3.12+
@@ -27,7 +27,6 @@ pip install -r requirements.txt
 ### .env
 ```
 API_ACCESS_URL = ["http://localhost:8501"]
-# Database
 SUPABASE_URL = url k PostgreSQL
 SUPABASE_ANON_KEY = ANON Key database
 ```
@@ -48,5 +47,5 @@ http://127.0.0.1:8000/docs
 ## Word
 - GET /words/{language_from}/{language_to} - seznam slovíček pro určitý jazyky
 - GET /word/{word_id} - detail jednoho slova
-- POST /word - založení nového sloíčka s překladem
+- POST /word - založení nového slovíčka
 - GET /word/random/{id_seed} - vrací náhodné slovíčko z databáze
