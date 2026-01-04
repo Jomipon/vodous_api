@@ -6,6 +6,7 @@ create table public.word_content
   valid boolean not null default false,
   created_at timestamp with time zone not null default now(),
   note text null,
+  tts_path text null,
   constraint word_content_pkey primary key (word_id)
 ) TABLESPACE pg_default;
 

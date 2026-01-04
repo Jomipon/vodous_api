@@ -1,17 +1,21 @@
 """
 Main program for start api
 """
+from io import BytesIO
 import random
 import uuid
 import os
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response, StreamingResponse
 from dotenv import load_dotenv
-from supabase_client import supabase
-from Model.word import EnvelopeWordContentOut, WordContentIn
+from supabase_client import supabase_anon
+from Endpoint.word import word_speech
+from Model.word import EnvelopeWordContentOut, WordContentIn, EnvelopeWordSpeechOut
+
 
 app = FastAPI(title="Vodouš API", version="0.1.0")
-database = supabase
+database = supabase_anon
 
 load_dotenv()
 
@@ -196,3 +200,20 @@ async def get_random_word(id_seed: int):
     else:
         data = []
     return {"status": "ok", "data": data}
+
+@app.get("/word/speech/{word_id}", status_code=200, tags=["Word"]) #response_model=EnvelopeWordSpeechOut
+def get_word_speech(word_id):
+    """
+    Return word with Text-To-Speech
+    
+    :param word_id: ID word
+    """
+    responce = word_speech(word_id)
+    if not responce:
+        raise HTTPException(status_code=404, detail="Audio not found")
+    return StreamingResponse(
+        BytesIO(responce),
+        media_type="audio/mpeg",  # pro mp3
+        headers={"Content-Disposition": 'inline; filename="speech.mp3"'},
+    )
+    

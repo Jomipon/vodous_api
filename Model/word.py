@@ -57,3 +57,11 @@ class EnvelopeWordContentOut(BaseModel):
     """
     status: str = Field(description="Return staus")
     data: Optional[list[WordContentOut]]
+
+class WordSpeechOut(BaseModel):
+    word_id: str = Field(description="ID Word")
+    speech: bytes = Field(description="Audio")
+class EnvelopeWordSpeechOut(BaseModel):
+    status: str = Field(description="Return staus")
+    data: Optional[list[WordSpeechOut]]
+    
