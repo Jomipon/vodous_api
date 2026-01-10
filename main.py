@@ -9,13 +9,12 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from dotenv import load_dotenv
-from supabase_client import supabase_anon
-from Endpoint.word import word_speech
-from Model.word import EnvelopeWordContentOut, WordContentIn, EnvelopeWordSpeechOut
+from supabase_client import supabase_anon as database_anon, supabase_service as database_service
+from app.Endpoint.word import word_speech, word_detail_with_translate, word_rating
+from app.Model.word import EnvelopeWordContentOut, WordContentIn, EnvelopeWordSpeechOut
 
 
 app = FastAPI(title="Vodouš API", version="0.1.0")
-database = supabase_anon
 
 load_dotenv()
 
@@ -33,35 +32,9 @@ def get_word_detail(word_id):
     """
     Return detail of word with translate
     
-    :param word_id: Description
+    :param word_id: Word ID
     """
-    try:
-        resp = database.from_("words_all_with_translate").select("*").eq("word_id_from", word_id).execute()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Error in comunation with database") from e
-    if len(resp.data) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Word with id '{word_id}' not found"
-    )
-    translate_all = []
-    for translate in resp.data:
-        if translate["word_id_to"]:
-            translate_all.append({"word_id": translate["word_id_to"],
-                    "word_content": translate["word_content_to"],
-                    "word_language": translate["word_language_to"],
-                    "valid": translate["valid_to"],
-                    "note": translate["note_to"]})
-    return [
-            {
-                "word_id": resp.data[0]["word_id_from"],
-                "word_content": resp.data[0]["word_content_from"],
-                "word_language": resp.data[0]["word_language_from"],
-                "valid": resp.data[0]["valid_from"],
-                "note": resp.data[0]["note_from"],
-                "translate": translate_all
-            }
-        ]
+    return word_detail_with_translate(word_id, database_anon)
 
 @app.get("/health", tags=["Health"])
 async def health_check():
@@ -75,7 +48,7 @@ async def get_all_words(language_from, language_to):
     """
     Return all words with translate
     """
-    querry = database.from_("words_all_with_translate").select("*")
+    querry = database_anon.from_("words_all_with_translate").select("*")
     querry = querry.eq("word_language_from", language_from)
     querry = querry.eq("valid_from", True)
     querry = querry.eq("word_language_to", language_to)
@@ -138,7 +111,7 @@ async def create_item(word: WordContentIn):
     if not word.word_id:
         word.word_id = str(uuid.uuid4())
     try:
-        data = database.from_("word_content").select("*").eq("word_id", word.word_id).execute()
+        data = database_anon.from_("word_content").select("*").eq("word_id", word.word_id).execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=e) from e
     if len(data.data) > 0:
@@ -151,11 +124,11 @@ async def create_item(word: WordContentIn):
         "note": word.note
     }
     try:
-        database.from_("word_content").insert(insert).execute()
+        database_anon.from_("word_content").insert(insert).execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=e) from e
     try:
-        resp = database.from_("word_content").select("*").eq("word_id", word.word_id).execute()
+        resp = database_anon.from_("word_content").select("*").eq("word_id", word.word_id).execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=e) from e
     if len(resp.data) == 0:
@@ -191,7 +164,7 @@ async def get_random_word(id_seed: int):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Seed ID must be higher then 0")
-    resp = database.from_("words_all_with_translate").select("*").eq("word_language_from", "EN").order("random_id", desc=True).execute()
+    resp = database_anon.from_("words_all_with_translate").select("*").eq("word_language_from", "EN").order("random_id", desc=True).execute()
     if len(resp.data) > 0:
         random.seed(id_seed)
         random.seed()
@@ -208,7 +181,7 @@ def get_word_speech(word_id):
     
     :param word_id: ID word
     """
-    responce = word_speech(word_id)
+    responce = word_speech(word_id, database_service, database_anon)
     if not responce:
         raise HTTPException(status_code=404, detail="Audio not found")
     return StreamingResponse(
@@ -216,4 +189,11 @@ def get_word_speech(word_id):
         media_type="audio/mpeg",  # pro mp3
         headers={"Content-Disposition": 'inline; filename="speech.mp3"'},
     )
-    
+
+@app.post("/word/rating/{word_translate_id}/{rating}", status_code=200, tags=["Word"])
+def post_word_rating(word_translate_id: str, rating: float):
+    """
+    Rate word
+    """
+    word_rating(word_translate_id, rating, database_service)
+    return {"status": "ok"}
