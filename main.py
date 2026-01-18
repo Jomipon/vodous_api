@@ -43,7 +43,8 @@ async def health_check():
     """
     return {"status": "ok"}
 
-@app.get("/words/{language_from}/{language_to}", status_code=200, tags=["Word"], response_model=EnvelopeWordContentOut)
+
+@app.get("/words/all/{language_from}/{language_to}", status_code=200, tags=["Word"], response_model=EnvelopeWordContentOut)
 async def get_all_words(language_from, language_to):
     """
     Return all words with translate
@@ -90,7 +91,7 @@ async def get_all_words(language_from, language_to):
         }
     return responce
 
-@app.get("/word/{word_id}", status_code=200, tags=["Word"], response_model=EnvelopeWordContentOut)
+@app.get("/word/detail/{word_id}", status_code=200, tags=["Word"], response_model=EnvelopeWordContentOut)
 async def get_word(word_id: str):
     """
     Return detail of word with translate
@@ -151,9 +152,8 @@ async def create_item(word: WordContentIn):
         ]
     }
 
-
 @app.get("/word/random/{id_seed}", status_code=200, tags=["Word"])
-async def get_random_word(id_seed: int):
+async def get_random_word(id_seed: int, word_language_from = "EN", word_language_to = "CZ"):
     """
     Return random word
     
@@ -164,7 +164,11 @@ async def get_random_word(id_seed: int):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Seed ID must be higher then 0")
-    resp = database_anon.from_("words_all_with_translate").select("*").eq("word_language_from", "EN").order("random_id", desc=True).execute()
+    if not word_language_from:
+        word_language_from = "EN"
+    if not word_language_to:
+        word_language_to = "CZ"
+    resp = database_anon.from_("words_all_with_translate").select("*").eq("word_language_from", word_language_from).eq("word_language_to", word_language_to).order("random_id", desc=True).execute()
     if len(resp.data) > 0:
         random.seed(id_seed)
         random.seed()
@@ -197,3 +201,14 @@ def post_word_rating(word_translate_id: str, rating: float):
     """
     word_rating(word_translate_id, rating, database_service)
     return {"status": "ok"}
+
+@app.get("/word/languages", status_code=200, tags=["Word"])
+def get_word_languages():
+    """
+    Return all supported languages
+    """
+    data = database_anon.from_("translate_all_languages").select("*").execute()
+    return {
+        "status:": "OK",
+        "data": data.data
+    }

@@ -1,7 +1,9 @@
 """
 Endpoint for path /word/*
 """
-from fastapi import HTTPException, status
+#from fastapi import HTTPException, status
+#from openai import OpenAI
+from app.Endpoint.openAI_client import openAIClient
 from openai import OpenAI
 
 def supabase_create_bucket(bucket_name, storage_client_service):
@@ -9,6 +11,7 @@ def supabase_create_bucket(bucket_name, storage_client_service):
     Create bucket in supabase
     
     :param bucket_name: Name of bucket
+    :param storage_client_service: client to server
     """
     response = (
         storage_client_service.storage
@@ -21,7 +24,7 @@ def supabase_create_bucket(bucket_name, storage_client_service):
             }
         )
     )
-    return response.name == bucket_name
+    return response
 
 def supabase_get_bucket(bucket_name, storage_client_service):
     """
@@ -42,16 +45,21 @@ def word_download_from_openai(input_text):
     :param input_text: Text to speech
     """
     try:
-        client = OpenAI()
-        with client.audio.speech.with_streaming_response.create(
-            model="gpt-4o-mini-tts",
-            voice="marin",
-            input=input_text,
-            instructions="neutrally, slowly",
-            response_format="mp3",
-        ) as response:
-            responce_stream = response.read()
-    except:
+        client = openAIClient()
+        client.create_client()
+        responce_stream = client.get_tts(input_text)
+        #client = OpenAI()
+        #print(f"{client=}")
+        #with client.client.audio.speech.with_streaming_response.create(
+        #with client.audio.speech.with_streaming_response.create(
+        #    model="gpt-4o-mini-tts",
+        #    voice="marin",
+        #    input=input_text,
+        #    instructions="neutrally, slowly",
+        #    response_format="mp3",
+        #) as response:
+        #    responce_stream = response.read()
+    except Exception as e:
         responce_stream = None
     return responce_stream
 
@@ -72,12 +80,14 @@ def word_detail_with_translate(word_id, storage_client_anon):
     try:
         resp = storage_client_anon.from_("words_all_with_translate").select("*").eq("word_id_from", word_id).execute()
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Error in comunation with database") from e
+        raise Exception("Error in comunation with database") from e
+        #raise HTTPException(status_code=500, detail="Error in comunation with database") from e
     if len(resp.data) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Word with id '{word_id}' not found"
-    )
+        raise Exception(f"Word with id '{word_id}' not found") from e
+        #raise HTTPException(
+        #    status_code=status.HTTP_404_NOT_FOUND,
+        #    detail=f"Word with id '{word_id}' not found"
+        #)
     translate_all = []
     for translate in resp.data:
         if translate["word_id_to"]:
@@ -114,7 +124,7 @@ def upload_file_to_bucket(bucket_server, tts_path, word_tts, storage_client_serv
         },
     )
     return upload_responce
-def word_file_name_bucket(tts_path, word_id, storage_client_anon):
+def word_file_in_name_bucket(tts_path, word_id, storage_client_anon):
     """
     Retrun file path in bucket
     
@@ -136,7 +146,7 @@ def word_speech(word_id, storage_client_service, storage_client_anon):
     detail = word_detail(word_id, storage_client_anon)
     if len(detail) == 0:
         return ""
-    tts_path = word_file_name_bucket(detail[0]["tts_path"], word_id, storage_client_anon)
+    tts_path = word_file_in_name_bucket(detail[0]["tts_path"], word_id, storage_client_anon)
     bucket = supabase_get_bucket(bucket_server, storage_client_service)
     if not word_speech_file_exists(bucket.id, tts_path, storage_client_service):
         word_tts = word_download_from_openai(detail[0]["word_content"])

@@ -77,3 +77,12 @@ uuid_generate_v4()::text as random_id
 from word_content as con_from
 left join word_translate as tran on con_from.word_id = tran.word_from_id
 left join word_content con_to on tran.word_to_id = con_to.word_id
+
+CREATE OR REPLACE VIEW translate_all_languages
+as
+select word_language_from, word_language_to from words_all_with_translate
+where valid_from = true
+and translate_valid = true
+and valid_to = true
+group by word_language_from, word_language_to
+order by word_language_from, word_language_to
