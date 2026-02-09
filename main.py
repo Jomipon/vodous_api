@@ -11,7 +11,9 @@ from fastapi.responses import Response, StreamingResponse
 from dotenv import load_dotenv
 from supabase_client import supabase_anon as database_anon, supabase_service as database_service
 from app.Endpoint.word import word_speech, word_detail_with_translate, word_rating
+from app.Endpoint.matching import matching_set_rating
 from app.Model.word import EnvelopeWordContentOut, WordContentIn, EnvelopeWordSpeechOut
+from app.Model.matching import MatchingRating
 
 
 app = FastAPI(title="Vodouš API", version="0.1.0")
@@ -212,3 +214,10 @@ def get_word_languages():
         "status:": "OK",
         "data": data.data
     }
+
+@app.post("/matching/rating", status_code=201, tags=["Matching"])
+def post_mathing_rating(rating: MatchingRating):
+    """
+    Rating for mathing - words vs button clicks counter
+    """
+    return matching_set_rating(rating, database_anon)

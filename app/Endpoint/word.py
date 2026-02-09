@@ -166,9 +166,7 @@ def word_speech_file_exists(bucket_name, path: str, storage_client_service) -> b
     :return: Exists file in bucket
     :rtype: bool
     """
-    folder, filename = path.rsplit("/", 1)
-    res = storage_client_service.storage.from_(bucket_name).list(folder)
-    return any(obj["name"] == filename for obj in res)
+    return storage_client_service.storage.from_(bucket_name).exists(path)
 
 def word_rating_append(word_translate_id, rating, storage_client_anon):
     """

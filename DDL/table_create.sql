@@ -53,6 +53,26 @@ create table public.word_translate_success_rate
   constraint word_translate_score_pkey primary key (word_translate_score)
 ) TABLESPACE pg_default;
 
+create table public.matching_rating
+(
+  matching_rating_id text not null DEFAULT ((gen_random_uuid())::text),
+  click_counter int not null,
+  language_from text not null,
+  language_to text not null,
+  created_at timestamp with time zone not null default now(),
+  constraint matching_rating_pkey primary key (matching_rating_id)
+) TABLESPACE pg_default;
+
+create table public.matching_rating_word
+(
+  matching_rating_word_id text not null DEFAULT ((gen_random_uuid())::text),
+  matching_rating_id text not null,
+  word_id text not null,
+  created_at timestamp with time zone not null default now(),
+  constraint matching_rating_word_pkey primary key (matching_rating_word_id)
+) TABLESPACE pg_default;
+
+
 CREATE OR REPLACE VIEW words_all_with_translate
 as
 select 
