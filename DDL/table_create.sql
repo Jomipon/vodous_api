@@ -80,6 +80,22 @@ create table public.storytelling_topics
   constraint storytelling_topics_pkey primary key (storytelling_topics_id)
 ) TABLESPACE pg_default;
 
+create table public.storytelling_result
+(
+  storytelling_result_id text not null DEFAULT ((gen_random_uuid())::text),
+  story_text text not null,
+  corrected_text text not null,
+  score_0_100 int not null,
+  cefr_estimate text not null,
+  short_feedback text not null,
+  strengths text not null,
+  improvements text not null,
+  top_corrections text not null,
+  created_at timestamp with time zone not null default now(),
+  constraint storytelling_result_pkey primary key (storytelling_result_id)
+) TABLESPACE pg_default;
+
+
 
 CREATE OR REPLACE VIEW words_all_with_translate
 as
@@ -117,7 +133,7 @@ order by word_language_from, word_language_to
 
 CREATE OR REPLACE VIEW storytelling_all_topics
 as
-select storytelling_topics_id, topic_text
+select storytelling_topics_id, topic_text, created_at
 ,uuid_generate_v4()::text as random_id
 from storytelling_topics
 order by random_id

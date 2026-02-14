@@ -246,36 +246,6 @@ def get_storytelling_random_topic():
         }
     return responce
 
-    topics = [
-        "Emily finds a note in her pocket today, but she doesn’t remember writing it.",
-        "Jack and Olivia try to return a lost key, but they don’t know what it opens.",
-        "Daniel decides to tell the truth all day, and he quickly learns it is harder than he expected.",
-        "Sophie sends a message to the wrong person by mistake and has to fix it fast.",
-        "Ben and Mia make a bet about who can stay silent longer, but they need to talk about something important.",
-        "Hannah buys something completely unnecessary, and now she tries to convince herself she needs it.",
-        "Ryan keeps meeting the same stranger all day, and it starts to feel suspicious.",
-        "Liam and Chloe try to build furniture without instructions and without arguing.",
-        "Grace finds an old photo of herself, but she can’t remember that moment.",
-        "Noah challenges himself not to delay anything, even for five minutes, but he fails almost immediately.",
-        "Ella and Sam are waiting for something important, and each of them is nervous for a different reason.",
-        "Lucas finally decides to call someone, but he keeps searching for the “right” first sentence.",
-        "Ava starts noticing small “signs” (strange coincidences) that push her toward one decision.",
-        "Nathan and Ruby accidentally swap their things and discover it reveals something about the other person.",
-        "Zoe tries to live one day without the internet, but people around her make it unexpectedly difficult.",
-        "Ethan and Lily have the same goal, but a completely different way to reach it.",
-        "Chris tries to keep a secret, but small details give him away.",
-        "Madison wants to make someone happy today, but she has no idea how.",
-        "Tyler and Leah give themselves one last chance to talk about something they have avoided for a long time.",
-        "Julia changes one small part of her daily routine, and she is surprised by what it starts."
-    ]
-    random.seed()
-    topic = random.choice(topics)
-    return {
-        "status:": "OK",
-        "data": {
-            "topic": topic
-        }
-    }
 @app.post("/storytelling/story", status_code=200, tags=["Storytelling"])
 def get_storytelling_story(topic: StorytellingStoryByTopic):
     """
@@ -284,13 +254,33 @@ def get_storytelling_story(topic: StorytellingStoryByTopic):
     client = openAIClient()
     client.create_client()
     story = client.get_story_by_topic(topic, level = "B1-B2", min_words = 140, max_words = 180)
+    topic_dupl = database_anon.from_("storytelling_topics").select("*").eq("topic_text", story.title).execute()
+    if len(topic_dupl.data) == 0:
+        database_anon.from_("storytelling_topics").insert({"topic_text": story.title}).execute()
     return {
         "status": "OK",
         "data": story
     }
 @app.post("/storytelling/evaluation", status_code=200, tags=["Storytelling"])
 def get_storytelling_evaluate_retelling(story: StorytellingEvaluationStory):
+    """
+    Return evaluation from sendet text
+    
+    :param story: Original story with student text to evaluation
+    :type story: StorytellingEvaluationStory
+    """
     client = openAIClient()
     client.create_client()
     feedback = client.evaluate_retelling(original_text=story.original, student_text=story.student)
+    result_data =  { 
+        "story_text": story.original,
+        "corrected_text": feedback.corrected_text,
+        "score_0_100": feedback.score_0_100,
+        "cefr_estimate": feedback.cefr_estimate,
+        "short_feedback": feedback.short_feedback,
+        "strengths": feedback.strengths,
+        "improvements": feedback.improvements,
+        "top_corrections": feedback.top_corrections
+        }
+    database_anon.from_("storytelling_result").insert(result_data).execute()
     return feedback
