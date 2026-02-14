@@ -12,8 +12,11 @@ from dotenv import load_dotenv
 from supabase_client import supabase_anon as database_anon, supabase_service as database_service
 from app.Endpoint.word import word_speech, word_detail_with_translate, word_rating
 from app.Endpoint.matching import matching_set_rating
-from app.Model.word import EnvelopeWordContentOut, WordContentIn, EnvelopeWordSpeechOut
+from app.Model.word import EnvelopeWordContentOut, WordContentIn, EnvelopeWordSpeechOut, EnvelopeWordRating, EnvelopeWordAllLanguages
 from app.Model.matching import MatchingRating
+from app.Model.storytelling import StorytellingStoryByTopic, StorytellingEvaluationStory
+
+from app.Endpoint.openAI_client import openAIClient
 
 
 app = FastAPI(title="Vodouš API", version="0.1.0")
@@ -43,7 +46,7 @@ async def health_check():
     """
     Test api run
     """
-    return {"status": "ok"}
+    return {"status": "OK"}
 
 
 @app.get("/words/all/{language_from}/{language_to}", status_code=200, tags=["Word"], response_model=EnvelopeWordContentOut)
@@ -88,7 +91,7 @@ async def get_all_words(language_from, language_to):
             }
             )
     responce = {
-        "status": "ok",
+        "status": "OK",
         "data": data_responce
         }
     return responce
@@ -154,7 +157,7 @@ async def create_item(word: WordContentIn):
         ]
     }
 
-@app.get("/word/random/{id_seed}", status_code=200, tags=["Word"])
+@app.get("/word/random/{id_seed}", status_code=200, tags=["Word"])# response_model=EnvelopeWordContentOut
 async def get_random_word(id_seed: int, word_language_from = "EN", word_language_to = "CZ"):
     """
     Return random word
@@ -178,7 +181,7 @@ async def get_random_word(id_seed: int, word_language_from = "EN", word_language
         data = resp.data[index]
     else:
         data = []
-    return {"status": "ok", "data": data}
+    return {"status": "OK", "data": data}
 
 @app.get("/word/speech/{word_id}", status_code=200, tags=["Word"]) #response_model=EnvelopeWordSpeechOut
 def get_word_speech(word_id):
@@ -196,13 +199,13 @@ def get_word_speech(word_id):
         headers={"Content-Disposition": 'inline; filename="speech.mp3"'},
     )
 
-@app.post("/word/rating/{word_translate_id}/{rating}", status_code=200, tags=["Word"])
+@app.post("/word/rating/{word_translate_id}/{rating}", status_code=200, tags=["Word"], response_model=EnvelopeWordRating)
 def post_word_rating(word_translate_id: str, rating: float):
     """
     Rate word
     """
     word_rating(word_translate_id, rating, database_service)
-    return {"status": "ok"}
+    return {"status": "OK"}
 
 @app.get("/word/languages", status_code=200, tags=["Word"])
 def get_word_languages():
@@ -221,3 +224,73 @@ def post_mathing_rating(rating: MatchingRating):
     Rating for mathing - words vs button clicks counter
     """
     return matching_set_rating(rating, database_anon)
+
+@app.get("/storytelling/topic", status_code=200, tags=["Storytelling"])
+def get_storytelling_random_topic():
+    """
+    Return random topic for storytelling
+    """
+    topics = database_anon.from_("storytelling_all_topics").select("*")
+    try:
+        topics_data = topics.execute()
+    except Exception as e:
+        print(str(e))
+        raise HTTPException(status_code=500, detail="Error in comunation with database") from e
+    if len(topics_data.data) > 0:
+        topics_data = topics_data.data[0]
+    else:
+        topics_data = None
+    responce = {
+        "status": "OK",
+        "data": topics_data
+        }
+    return responce
+
+    topics = [
+        "Emily finds a note in her pocket today, but she doesn’t remember writing it.",
+        "Jack and Olivia try to return a lost key, but they don’t know what it opens.",
+        "Daniel decides to tell the truth all day, and he quickly learns it is harder than he expected.",
+        "Sophie sends a message to the wrong person by mistake and has to fix it fast.",
+        "Ben and Mia make a bet about who can stay silent longer, but they need to talk about something important.",
+        "Hannah buys something completely unnecessary, and now she tries to convince herself she needs it.",
+        "Ryan keeps meeting the same stranger all day, and it starts to feel suspicious.",
+        "Liam and Chloe try to build furniture without instructions and without arguing.",
+        "Grace finds an old photo of herself, but she can’t remember that moment.",
+        "Noah challenges himself not to delay anything, even for five minutes, but he fails almost immediately.",
+        "Ella and Sam are waiting for something important, and each of them is nervous for a different reason.",
+        "Lucas finally decides to call someone, but he keeps searching for the “right” first sentence.",
+        "Ava starts noticing small “signs” (strange coincidences) that push her toward one decision.",
+        "Nathan and Ruby accidentally swap their things and discover it reveals something about the other person.",
+        "Zoe tries to live one day without the internet, but people around her make it unexpectedly difficult.",
+        "Ethan and Lily have the same goal, but a completely different way to reach it.",
+        "Chris tries to keep a secret, but small details give him away.",
+        "Madison wants to make someone happy today, but she has no idea how.",
+        "Tyler and Leah give themselves one last chance to talk about something they have avoided for a long time.",
+        "Julia changes one small part of her daily routine, and she is surprised by what it starts."
+    ]
+    random.seed()
+    topic = random.choice(topics)
+    return {
+        "status:": "OK",
+        "data": {
+            "topic": topic
+        }
+    }
+@app.post("/storytelling/story", status_code=200, tags=["Storytelling"])
+def get_storytelling_story(topic: StorytellingStoryByTopic):
+    """
+    return random topic
+    """
+    client = openAIClient()
+    client.create_client()
+    story = client.get_story_by_topic(topic, level = "B1-B2", min_words = 140, max_words = 180)
+    return {
+        "status": "OK",
+        "data": story
+    }
+@app.post("/storytelling/evaluation", status_code=200, tags=["Storytelling"])
+def get_storytelling_evaluate_retelling(story: StorytellingEvaluationStory):
+    client = openAIClient()
+    client.create_client()
+    feedback = client.evaluate_retelling(original_text=story.original, student_text=story.student)
+    return feedback

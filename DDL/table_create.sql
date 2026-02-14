@@ -72,6 +72,14 @@ create table public.matching_rating_word
   constraint matching_rating_word_pkey primary key (matching_rating_word_id)
 ) TABLESPACE pg_default;
 
+create table public.storytelling_topics
+(
+  storytelling_topics_id text not null DEFAULT ((gen_random_uuid())::text),
+  topic_text text not null,
+  created_at timestamp with time zone not null default now(),
+  constraint storytelling_topics_pkey primary key (storytelling_topics_id)
+) TABLESPACE pg_default;
+
 
 CREATE OR REPLACE VIEW words_all_with_translate
 as
@@ -106,3 +114,10 @@ and translate_valid = true
 and valid_to = true
 group by word_language_from, word_language_to
 order by word_language_from, word_language_to
+
+CREATE OR REPLACE VIEW storytelling_all_topics
+as
+select storytelling_topics_id, topic_text
+,uuid_generate_v4()::text as random_id
+from storytelling_topics
+order by random_id

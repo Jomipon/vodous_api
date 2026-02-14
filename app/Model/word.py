@@ -59,9 +59,31 @@ class EnvelopeWordContentOut(BaseModel):
     data: Optional[list[WordContentOut]]
 
 class WordSpeechOut(BaseModel):
+    """
+    Infromation about word and TTS
+    """
     word_id: str = Field(description="ID Word")
     speech: bytes = Field(description="Audio")
 class EnvelopeWordSpeechOut(BaseModel):
+    """
+    Responce class for word and audio TTS
+    """
     status: str = Field(description="Return staus")
     data: Optional[list[WordSpeechOut]]
-    
+class EnvelopeWordRating(BaseModel):
+    """
+    Responce for translate rating
+    """
+    status: str = Field(description="Return staus")
+class WordLanguageInfo(BaseModel):
+    """
+    Information about support language
+    """
+    word_language_from: str = Field("Language from")
+    word_language_to: str = Field("Language fto")
+class EnvelopeWordAllLanguages(BaseModel):
+    """
+    Responce class for all supported languages
+    """
+    status: str = Field(description="Return staus")
+    #data: Optional[list[WordLanguageInfo]]
