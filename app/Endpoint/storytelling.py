@@ -32,7 +32,7 @@ def get_story_from_AI(client_ai, topic):
     Call OpenAI and return story by topic
     """
     client_ai.create_client()
-    story = client_ai.get_story_by_topic(topic, level = "B1-B2", min_words = 140, max_words = 180)
+    story = client_ai.get_story_by_topic(topic.topic, level = "B1-B2", min_words = 140, max_words = 180, tense = topic.tense)
     return story
 
 def create_story(storage_client_anon, storage_client_service, topic):
@@ -65,10 +65,9 @@ def create_story(storage_client_anon, storage_client_service, topic):
     # insert topic to DB
     topic_dupl = storage_client_anon.from_("storytelling_topics").select("storytelling_topics_id").eq("topic_text", story.title).execute()
     if len(topic_dupl.data) == 0:
-        new_topic = storage_client_anon.from_("storytelling_topics").insert({"topic_text": story.title, "storytelling_topics_id": str(uuid4())}).execute()
-        topics_id = new_topic["storytelling_topics_id"]
-    else:
-        topics_id = topic_dupl.data[0]["storytelling_topics_id"]
+        storage_client_anon.from_("storytelling_topics").insert({"topic_text": story.title, "storytelling_topics_id": str(uuid4())}).execute()
+        topic_dupl = storage_client_anon.from_("storytelling_topics").select("storytelling_topics_id").eq("topic_text", story.title).execute()
+    topics_id = topic_dupl.data[0]["storytelling_topics_id"]
     # insert story to DB
     story_db = story_to_database(storage_client_anon, story.title, story.text, story_title_tts_path, story_text_tts_path)
     #"story_title_tts_path": story_title_tts_path, "story_text_tts_path": story_text_tts_path

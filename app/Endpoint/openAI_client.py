@@ -31,7 +31,7 @@ class openAIClient():
         ) as response:
             responce_stream = response.read()
         return responce_stream
-    def get_story_by_topic(self, topic: str, level: str = "B1-B2", min_words: int = 140, max_words: int = 180):
+    def get_story_by_topic(self, topic: str, level: str = "B1-B2", min_words: int = 140, max_words: int = 180, tense = "PAST"):
         class ReadingText(BaseModel):
             level: Literal["B1", "B2", "B1-B2"]
             title: str
@@ -49,6 +49,11 @@ class openAIClient():
             "- Keep it interesting and realistic.\n"
             "- Provide 6–10 useful vocabulary items from the text.\n"
             "- Provide 2–4 short comprehension questions.\n"
+            f"Target tense: {tense}.\n"
+            "Rules:\n"
+            "- Write the main narration primarily in the target tense (aim for 80–90%).\n"
+            "- Avoid unnecessary tense switching.\n"
+            "- If a different tense is needed, keep it brief and clearly motivated.\n"
         )
         user_prompt = (
             f"Topic: {topic}\n"
