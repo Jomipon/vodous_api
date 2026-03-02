@@ -3,40 +3,14 @@ Endpoint for path /word/*
 """
 #from fastapi import HTTPException, status
 #from openai import OpenAI
+import random
+import uuid
 from app.Endpoint.openAI_client import openAIClient
+from app.Endpoint.bucket import supabase_get_bucket, supabase_file_exists, upload_file_to_bucket
 from openai import OpenAI
+from app.Model.word import WordContentIn
 
-def supabase_create_bucket(bucket_name, storage_client_service):
-    """
-    Create bucket in supabase
-    
-    :param bucket_name: Name of bucket
-    :param storage_client_service: client to server
-    """
-    response = (
-        storage_client_service.storage
-        .create_bucket(
-            bucket_name,
-            options={
-                "public": False,
-                "allowed_mime_types": ["audio/mpeg"],
-                "file_size_limit": 50*1024,
-            }
-        )
-    )
-    return response
 
-def supabase_get_bucket(bucket_name, storage_client_service):
-    """
-    Return bucket if exists
-    
-    :param bucket_name: Name of bucket
-    """
-    bucket = storage_client_service.storage.get_bucket(bucket_name)
-    if not bucket:
-        supabase_create_bucket(bucket_name, storage_client_service)
-        bucket = storage_client_service.storage.get_bucket(bucket_name)
-    return bucket
 
 def word_download_from_openai(input_text):
     """
@@ -48,17 +22,6 @@ def word_download_from_openai(input_text):
         client = openAIClient()
         client.create_client()
         responce_stream = client.get_tts(input_text)
-        #client = OpenAI()
-        #print(f"{client=}")
-        #with client.client.audio.speech.with_streaming_response.create(
-        #with client.audio.speech.with_streaming_response.create(
-        #    model="gpt-4o-mini-tts",
-        #    voice="marin",
-        #    input=input_text,
-        #    instructions="neutrally, slowly",
-        #    response_format="mp3",
-        #) as response:
-        #    responce_stream = response.read()
     except Exception as e:
         responce_stream = None
     return responce_stream
@@ -77,6 +40,8 @@ def word_detail_with_translate(word_id, storage_client_anon):
     
     :param word_id: Word ID
     """
+    if not word_id:
+        raise Exception("Word ID not exists")
     try:
         resp = storage_client_anon.from_("words_all_with_translate").select("*").eq("word_id_from", word_id).execute()
     except Exception as e:
@@ -107,23 +72,6 @@ def word_detail_with_translate(word_id, storage_client_anon):
             }
         ]
 
-def upload_file_to_bucket(bucket_server, tts_path, word_tts, storage_client_service):
-    """
-    Upload file to bucket in database
-    
-    :param bucket_server: Name bucket server
-    :param tts_path: File path in bucket
-    :param word_tts: File bytes
-    """
-    upload_responce = storage_client_service.storage.from_(bucket_server).upload(
-        path=tts_path,
-        file=word_tts,
-        file_options={
-            "content-type": "audio/mpeg",
-            "upsert": False,  # False = chyba, pokud už existuje
-        },
-    )
-    return upload_responce
 def word_file_in_name_bucket(tts_path, word_id, storage_client_anon):
     """
     Retrun file path in bucket
@@ -135,6 +83,7 @@ def word_file_in_name_bucket(tts_path, word_id, storage_client_anon):
         tts_path = f"mp3/{word_id}.mp3"
         storage_client_anon.from_("word_content").update({"tts_path": tts_path}).eq("word_id", word_id).execute()
     return tts_path
+
 
 def word_speech(word_id, storage_client_service, storage_client_anon):
     """
@@ -148,7 +97,7 @@ def word_speech(word_id, storage_client_service, storage_client_anon):
         return ""
     tts_path = word_file_in_name_bucket(detail[0]["tts_path"], word_id, storage_client_anon)
     bucket = supabase_get_bucket(bucket_server, storage_client_service)
-    if not word_speech_file_exists(bucket.id, tts_path, storage_client_service):
+    if not supabase_file_exists(bucket.id, tts_path, storage_client_service):
         word_tts = word_download_from_openai(detail[0]["word_content"])
         if not word_tts:
             return ""
@@ -156,17 +105,6 @@ def word_speech(word_id, storage_client_service, storage_client_anon):
     tts_data = storage_client_service.storage.from_(bucket.id).download(tts_path)
     return tts_data
 
-def word_speech_file_exists(bucket_name, path: str, storage_client_service) -> bool:
-    """
-    Test to exists file in bucket
-    
-    :param bucket_name: Bucket name
-    :param path: File path
-    :type path: str
-    :return: Exists file in bucket
-    :rtype: bool
-    """
-    return storage_client_service.storage.from_(bucket_name).exists(path)
 
 def word_rating_append(word_translate_id, rating, storage_client_anon):
     """
@@ -202,4 +140,90 @@ def word_rating(word_translate_id, rating, storage_client_anon):
     word_rating_append(word_translate_id, rating, storage_client_anon)
     translate_rating_recalculation(word_translate_id, storage_client_anon)
 
+def get_all_words_with_translate(database_anon, language_from, language_to):
+    querry = database_anon.from_("words_all_with_translate").select("*")
+    querry = querry.eq("word_language_from", language_from)
+    querry = querry.eq("valid_from", True)
+    querry = querry.eq("word_language_to", language_to)
+    querry = querry.order("word_id_from")
+    querry = querry.order("word_translate_id")
+    querry = querry.order("word_id_to")
+    try:
+        word_content_data = querry.execute()
+    except Exception as e:
+        raise Exception("Error in comunation with database") from e
+    tran = {}
+    for word in word_content_data.data:
+        if word["word_id_from"] not in tran:
+            tran[word["word_id_from"]] = []
+        tran[word["word_id_from"]].append(
+            {
+                "word_id": word["word_id_to"],
+                "word_content": word["word_content_to"],
+                "word_language": word["word_language_to"],
+                "valid": word["valid_to"],
+                "note": word["note_to"]
+            }
+        )
+    data_responce = []
+    for word in word_content_data.data:
+        data_responce.append(
+            {
+                "word_id": word["word_id_from"],
+                "word_content": word["word_content_from"],
+                "word_language": word["word_language_from"],
+                "valid": word["valid_from"],
+                "note": word["note_from"],
+                "translate": tran[word["word_id_from"]]
+            }
+            )
+    return data_responce
 
+def create_word(word: WordContentIn, database_anon):
+    """
+    Create new word
+    """
+    if not word.word_id:
+        word.word_id = str(uuid.uuid4())
+    try:
+        data = database_anon.from_("word_content").select("*").eq("word_id", word.word_id).execute()
+    except Exception as e:
+        raise Exception("Error in communication with database")
+    if len(data.data) > 0:
+        raise Exception("Word ID is exists")
+    insert = {
+        "word_id": word.word_id,
+        "word_content": word.word_content,
+        "word_language": word.word_language,
+        "valid": word.valid,
+        "note": word.note
+    }
+    try:
+        database_anon.from_("word_content").insert(insert).execute()
+    except Exception as e:
+        raise Exception("Error in comunation with database") from e
+    try:
+        resp = database_anon.from_("word_content").select("*").eq("word_id", word.word_id).execute()
+    except Exception as e:
+        raise Exception("Error in comunation with database") from e
+    if len(resp.data) == 0:
+        raise Exception(f"Word with id '{word.word_id}' not found") from e
+    return {
+                "word_id": resp.data[0]["word_id"],
+                "word_content": resp.data[0]["word_content"],
+                "word_language": resp.data[0]["word_language"],
+                "valid": resp.data[0]["valid"],
+                "note": resp.data[0]["note"],
+                "translate": []
+            }
+
+def random_word(database_anon, id_seed, word_language_from, word_language_to):
+    resp = database_anon.from_("words_all_with_translate").select("*").eq("word_language_from", word_language_from).eq("word_language_to", word_language_to).order("random_id", desc=True).execute()
+    if len(resp.data) > 0:
+        random.seed(id_seed)
+        random.seed()
+        index = random.randint(0,len(resp.data)-1)
+        data = resp.data[index]
+    else:
+        data = []
+    return data

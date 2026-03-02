@@ -80,6 +80,18 @@ create table public.storytelling_topics
   constraint storytelling_topics_pkey primary key (storytelling_topics_id)
 ) TABLESPACE pg_default;
 
+create table public.storytelling_story
+(
+  storytelling_story_id text not null DEFAULT ((gen_random_uuid())::text),
+  story_title text not null,
+  story_text text not null,
+  story_title_tts_path text null,
+  story_text_tts_path text null,
+  created_at timestamp with time zone not null default now(),
+  constraint storytelling_story_pkey primary key (storytelling_story_id)
+) TABLESPACE pg_default;
+
+
 create table public.storytelling_result
 (
   storytelling_result_id text not null DEFAULT ((gen_random_uuid())::text),
