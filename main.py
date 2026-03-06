@@ -1,6 +1,7 @@
 """
 Main program for start api
 """
+from datetime import date, timedelta
 from io import BytesIO
 import uuid
 import os
@@ -187,4 +188,15 @@ def get_storytelling_evaluate_retelling(story: StorytellingEvaluationStory):
     return {
         "status": "OK",
         "data": feedback
+    }
+
+@app.get("/statistics/weekly", status_code=200, tags=["Statistics"])
+def get_statistics_daily():
+    """
+    Return statistics of using vodous for week
+    """
+    data = database_anon.from_("matching_statistics_by_day").select("*").gte("date_serial", date.today()-timedelta(7)).execute()
+    return {
+        "status": "OK",
+        "data": data
     }

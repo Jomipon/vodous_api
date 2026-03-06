@@ -20,16 +20,32 @@ def get_random_topic(database_anon):
     return topics_data
 
 def story_to_database(database_anon, story_title, story_text, story_title_tts_path, story_text_tts_path):
+    """
+    Save story to DB
+    :param database_anon: DB connection with anon
+    :param story_title: Story title
+    :param story_text: Story text
+    :param story_title_tts_path: title file name without extension
+    :param story_text_tts_path: text file name without extension
+    """
     data_ins = {"story_title": story_title, "story_text":  story_text, "story_title_tts_path": story_title_tts_path, "story_text_tts_path": story_text_tts_path}
     story_db = database_anon.from_("storytelling_story").insert(data_ins).execute()
     return story_db
 
 def text_to_speech(ai_client, text_to_speech):
+    """
+    Return audio TTS from OpenAI
+
+    :param ai_client: OpenAI client
+    :param text_to_speech: Input texto for OpenAI
+    """
     return ai_client.get_tts(text_to_speech)
 
 def get_story_from_AI(client_ai, topic):
     """
     Call OpenAI and return story by topic
+    :param client_ai: OpenAI client
+    :param topic: Topic of story
     """
     client_ai.create_client()
     story = client_ai.get_story_by_topic(topic.topic, level = "B1-B2", min_words = 140, max_words = 180, tense = topic.tense)
@@ -38,6 +54,9 @@ def get_story_from_AI(client_ai, topic):
 def create_story(storage_client_anon, storage_client_service, topic):
     """
     Create new story by topic
+    :param storage_client_anon: OpenAI client anon
+    :param storage_client_service: OpenAI client service
+    :param topic: Topic of story
     """
     client = openAIClient()
     # openAI Get story from topic
@@ -74,9 +93,12 @@ def create_story(storage_client_anon, storage_client_service, topic):
     print(f"{story_db.data[0]["storytelling_story_id"]=}")
     return {"level": story.level, "title": story.title, "text": story.text, "word_count": story.word_count, "storytelling_topics_id": topics_id, "storytelling_story_id": story_db.data[0]["storytelling_story_id"]}# : story_db.storytelling_story_id
 
-
-
 def evaluate_retelling(database_anon, story: StorytellingEvaluationStory):
+    """
+    
+    :param database_anon: OpenAI client anon
+    :param story: Story for evaluate
+    """
     client = openAIClient()
     client.create_client()
     feedback = client.evaluate_retelling(original_text=story.original, student_text=story.student)
@@ -98,6 +120,7 @@ def story_result_detail(story_id, storage_client_anon):
     Story result detail from database
     
     :param story_id: Story ID
+    :param storage_client_anon: OpenAI client anon
     """
     story_result_detail = storage_client_anon.from_("storytelling_result").select("storytelling_result_id,story_text,story_text_tts_path").eq("storytelling_result_id", story_id).execute()
     return story_result_detail.data
@@ -107,6 +130,7 @@ def story_topic_detail(story_id, storage_client_anon):
     Story topic detail from database
     
     :param story_id: Story ID
+    :param storage_client_anon: OpenAI client anon
     """
     story_topic_detail = storage_client_anon.from_("storytelling_topics").select("storytelling_topics_id,topic_text,topic_tts_path").eq("storytelling_topics_id", story_id).execute()
     return story_topic_detail.data
@@ -116,6 +140,7 @@ def story_text_detail(story_id, storage_client_anon):
     Story story detail from database
     
     :param story_id: Story ID
+    :param storage_client_anon: OpenAI client anon
     """
     story_topic_detail = storage_client_anon.from_("storytelling_story").select("storytelling_story_id,story_title,story_text,story_title_tts_path,story_text_tts_path").eq("storytelling_story_id", story_id).execute()
     return story_topic_detail.data
@@ -126,6 +151,7 @@ def story_file_in_name_bucket(tts_path, story_id, storage_client_anon):
     
     :param tts_path: Path in bucket
     :param word_id: Word ID
+    :param storage_client_anon: OpenAI client anon
     """
     if not tts_path:
         tts_path = f"mp3/{story_id}.mp3"
@@ -150,6 +176,8 @@ def story_speech(story_id, storage_client_service, storage_client_anon):
     Return speech for story
     
     :param story_id: ID story
+    :param storage_client_service: OpenAI client service
+    :param storage_client_anon: OpenAI client anon
     """
     bucket_server = "words_tts"
     detail = story_text_detail(story_id, storage_client_anon)

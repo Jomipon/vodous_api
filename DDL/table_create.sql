@@ -149,3 +149,32 @@ select storytelling_topics_id, topic_text, created_at
 ,uuid_generate_v4()::text as random_id
 from storytelling_topics
 order by random_id
+
+CREATE OR REPLACE VIEW matching_statistics_by_day
+as
+SELECT date_trunc('day', date_serial.date_serial):: date as date_serial, coalesce(rating_data.word_rating_count_by_date,0) as word_rating_count_by_date, coalesce(story_story_data.storytelling_story_count_by_date,0) as storytelling_story_count_by_date, coalesce(story_result_data.storytelling_result_count_by_date,0) as storytelling_result_count_by_date
+from generate_series(
+  (select cast(min(created_at) as date) as created_at_min from matching_rating_word)::date, 
+  (select CURRENT_DATE), '1 day'::interval) as date_serial(date_serial)
+left join
+(
+  select cast(created_at as date) as created_at, count(*) as word_rating_count_by_date
+  from word_translate_success_rate
+  group by cast(created_at as date)
+) as rating_data on (date_serial.date_serial::date) = rating_data.created_at
+left join
+(
+  select cast(created_at as date) as created_at, count(*) as storytelling_story_count_by_date
+  from storytelling_story
+  group by cast(created_at as date)
+) as story_story_data on (date_serial.date_serial::date) = story_story_data.created_at
+left join
+(
+  select cast(created_at as date) as created_at, count(*) as storytelling_result_count_by_date
+  from storytelling_result
+  group by cast(created_at as date)
+) as story_result_data on (date_serial.date_serial::date) = story_result_data.created_at
+order by date_serial.date_serial
+
+
+
