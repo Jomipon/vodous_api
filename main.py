@@ -12,9 +12,11 @@ from dotenv import load_dotenv
 from supabase_client import supabase_anon as database_anon, supabase_service as database_service
 from app.Endpoint.word import word_speech, word_detail_with_translate, word_rating, get_all_words_with_translate, create_word, random_word
 from app.Endpoint.matching import matching_set_rating
+from app.Endpoint.sentence import random_sentence, allTenses, check_change_sentence
 from app.Endpoint.storytelling import get_random_topic, create_story, evaluate_retelling, story_speech
 from app.Model.word import EnvelopeWordContentOut, WordContentIn, EnvelopeWordSpeechOut, EnvelopeWordRating, EnvelopeWordAllLanguages
 from app.Model.matching import MatchingRating
+from app.Model.sentence import SentenceType, SentenceCheckAnswer
 from app.Model.storytelling import StorytellingStoryByTopic, StorytellingEvaluationStory
 
 app = FastAPI(title="Vodouš API", version="0.1.0")
@@ -200,3 +202,71 @@ def get_statistics_daily():
         "status": "OK",
         "data": data
     }
+
+@app.post("/sentence_check/sentence/random")
+def post_random_sentence(sentence_type_filter: SentenceType):
+    """
+    Return random sentence from DB and AI with parameters
+    """
+    tense = sentence_type_filter.Tense
+    sentence_type = sentence_type_filter.Type
+
+    sentence_data = random_sentence(database_anon, tense, sentence_type)
+    return {
+        "status": "OK",
+        "data": sentence_data
+    }
+
+#get tense all
+@app.get("/sentence_check/sentence/all_tenses")
+def get_all_tenses():
+    """
+    Return all tenses
+    """
+    tenses_data = allTenses(database_anon)
+    return {
+        "status": "OK",
+        "data": tenses_data
+    }
+
+# check sentence tense
+@app.post("/sentence_check/sentence/check")
+def post_sentense_check(check_answer: SentenceCheckAnswer):
+    """
+    Check new sentence
+    """
+    check_data = check_change_sentence(database_anon, check_answer.SourceSentence, check_answer.NewSentence, check_answer.TargetTense, check_answer.TargetTenseType)
+    return {
+        "status": "OK",
+        "data": check_data
+    }
+"""
+{
+    "status": "OK",
+    "data": {
+        "tense": "past",
+        "target_sentence_type": "affirmative",
+        "is_correct": false,
+        "corrected_sentence": "Sarah had picked up the package from the post office yesterday.",
+        "corrected_czech_translation": "Sarah si včera vyzvedla balíček na poště.",
+        "kept_meaning": true,
+        "kept_phrasal_verb": true,
+        "errors": [
+            {
+                "category": "tense",
+                "problem": "Incorrect tense: past simple instead of past perfect.",
+                "fix": "Use past perfect tense: 'had picked up'."
+            }
+        ],
+        "short_feedback_cz": "Použili jste špatný čas. Měl by být použit předminulý čas.",
+        "tips_cz": [
+            "Použijte předminulý čas pro činnosti, které se staly před jiným momentem v minulosti.",
+            "Ujistěte se, že správně používáte frázové sloveso v daném čase.",
+            "Pamatujte, že předminulý čas vyžaduje pomocné sloveso 'had'.",
+            "Dodržujte původní význam věty."
+        ]
+    }
+}
+"""
+# change sentence type
+# change sentence tense

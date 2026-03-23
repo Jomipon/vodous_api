@@ -107,6 +107,27 @@ create table public.storytelling_result
   constraint storytelling_result_pkey primary key (storytelling_result_id)
 ) TABLESPACE pg_default;
 
+create table public.tense_check_tense
+(
+  tense_check_tense_id text not null DEFAULT ((gen_random_uuid())::text),
+  text_eng text not null,
+  text_cz text not null,
+  created_at timestamp with time zone not null default now(),
+  constraint tense_check_tense_pkey primary key (tense_check_tense_id)
+) TABLESPACE pg_default;
+
+create table public.tense_check_sentence
+(
+  tense_check_sentence_id text not null DEFAULT ((gen_random_uuid())::text),
+  text_eng text not null,
+  text_cz text not null,
+  tense_id text not null,
+  tts_path_eng text not null,
+  tts_path_cz text not null,
+  sentence_type text not null
+  created_at timestamp with time zone not null default now(),
+  constraint tense_check_sentence_pkey primary key (tense_check_sentence_id)
+) TABLESPACE pg_default;
 
 
 CREATE OR REPLACE VIEW words_all_with_translate
@@ -175,6 +196,19 @@ left join
   group by cast(created_at as date)
 ) as story_result_data on (date_serial.date_serial::date) = story_result_data.created_at
 order by date_serial.date_serial
+
+CREATE OR REPLACE VIEW tense_check_all_sentence
+as
+  select tense_check_sentence_id,
+  text_eng,
+  text_cz,
+  tense_id,
+  tts_path_eng,
+  tts_path_cz,
+  sentence_type,
+  uuid_generate_v4()::text as random_id
+from tense_check_sentence
+order by random_id
 
 
 
