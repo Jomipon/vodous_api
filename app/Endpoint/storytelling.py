@@ -48,7 +48,7 @@ def get_story_from_AI(client_ai, topic):
     :param topic: Topic of story
     """
     client_ai.create_client()
-    story = client_ai.get_story_by_topic(topic.topic, level = "B1-B2", min_words = 140, max_words = 180, tense = topic.tense)
+    story = client_ai.get_story_by_topic(topic.topic, level = "B1-B2", min_words = topic.min_words, max_words = topic.max_words, tense = topic.tense)
     return story
 
 def create_story(storage_client_anon, storage_client_service, topic):

@@ -15,6 +15,8 @@ class StorytellingStoryByTopic(BaseModel):
     """
     topic: str = Field(description="Topic")
     tense: TenseEnum = Field(description="Tense for story (PAST,PRESENT,FUTURE)", )
+    min_words: int = Field(description="Minimum of word count", default=140)
+    max_words: int = Field(description="Maximum of word count", default=180)
 
 class StorytellingEvaluationStory(BaseModel):
     """

@@ -240,33 +240,3 @@ def post_sentense_check(check_answer: SentenceCheckAnswer):
         "status": "OK",
         "data": check_data
     }
-"""
-{
-    "status": "OK",
-    "data": {
-        "tense": "past",
-        "target_sentence_type": "affirmative",
-        "is_correct": false,
-        "corrected_sentence": "Sarah had picked up the package from the post office yesterday.",
-        "corrected_czech_translation": "Sarah si včera vyzvedla balíček na poště.",
-        "kept_meaning": true,
-        "kept_phrasal_verb": true,
-        "errors": [
-            {
-                "category": "tense",
-                "problem": "Incorrect tense: past simple instead of past perfect.",
-                "fix": "Use past perfect tense: 'had picked up'."
-            }
-        ],
-        "short_feedback_cz": "Použili jste špatný čas. Měl by být použit předminulý čas.",
-        "tips_cz": [
-            "Použijte předminulý čas pro činnosti, které se staly před jiným momentem v minulosti.",
-            "Ujistěte se, že správně používáte frázové sloveso v daném čase.",
-            "Pamatujte, že předminulý čas vyžaduje pomocné sloveso 'had'.",
-            "Dodržujte původní význam věty."
-        ]
-    }
-}
-"""
-# change sentence type
-# change sentence tense
